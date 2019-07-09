@@ -204,6 +204,7 @@ class BestHit(_Assigner):
         if self.search_method.lower() == "blastx":
             return pandas.read_csv(alignment_fp, sep='\t', header=None, names=colNames, usecols=[0,1,2,10])
         else: # for rapsearch
+            # this would be a good place to put an organism filter e.g. Subject = amu:Amuc_0824 is just Akkermansia
             p = pandas.read_csv(alignment_fp, sep='\t', skiprows=5, names=colNames, usecols=[0,1,2,10])
             p['e-value'] = pow(10, p['e-value'])
             return p
