@@ -264,7 +264,8 @@ class BestHit(_Assigner):
         ko_count = ko_count.sum(axis=1).to_frame(name='ko_abundance')
 
         # write to file
-        ko_out_fp = os.path.join(out_dir, os.path.basename(os.path.splitext(alignment_R1_fp)[0]+'.ko').replace('_R1', ''))
+        # TODO: more intelligently handle paired-end naming convention i.e. it could be _R1 or _1 or _fwd
+        ko_out_fp = os.path.join(out_dir, os.path.basename(os.path.splitext(alignment_R1_fp)[0]+'.ko').replace('_1', ''))
         ko_count.to_csv(ko_out_fp, sep='\t')
         
         return summary
