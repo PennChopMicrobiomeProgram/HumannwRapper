@@ -21,7 +21,8 @@ def get_config(user_config_file):
         "search_method":"rapsearch", # rapsearch or blastx
         "mapping_method":"best_hit", # best_hit or humann
         "evalue_cutoff":0.001,
-        "num_threads":4
+        "num_threads":4,
+        "organism_filter":None
         }
 
     if user_config_file is None:
@@ -207,7 +208,10 @@ class BestHit(_Assigner):
             # this would be a good place to put an organism filter e.g. Subject = amu:Amuc_0824 is just Akkermansia
             p = pandas.read_csv(alignment_fp, sep='\t', skiprows=5, names=colNames, usecols=[0,1,2,10])
             p['e-value'] = pow(10, p['e-value'])
-            return p
+            if self.organism_filter is not None:
+                return p['Subject'].startswith(self.organism_filter) #TODO: fix this pseudo-code, i.e. how to filter a pandas data-frame
+            else:
+                return p
     
     def _getBestHit(self, alignment):
         "Finds the best match that passes an e-value threshold."
@@ -303,6 +307,9 @@ def main(argv=None):
         "--config-file",
         type=argparse.FileType("r"),
         help="JSON configuration file")
+#    parser.add_argument(
+#        "--org-filter", required=False,
+#        help="3 or 4 letter KEGG code for organism that you want to focus on\n")
     args = parser.parse_args(argv)
 
     config = get_config(args.config_file)
