@@ -200,16 +200,18 @@ class BestHit(_Assigner):
         return kegg2ko.merge(self._getCount(kegg2ko, 'Subject', 'Count_ko'), on='Subject')
 
     def _parseResults(self, alignment_fp):
-        "Parses an alignment result file. Returns only the columns of interest"
+        """
+        Parses an alignment result file. Returns only the columns of interest.
+        Optionally, filter by 3 or 4 letter code for a Kegg organism.
+        """
         colNames = ['# Fields: Query', 'Subject', 'identity', 'e-value']
         if self.search_method.lower() == "blastx":
             return pandas.read_csv(alignment_fp, sep='\t', header=None, names=colNames, usecols=[0,1,2,10])
         else: # for rapsearch
-            # this would be a good place to put an organism filter e.g. Subject = amu:Amuc_0824 is just Akkermansia
             p = pandas.read_csv(alignment_fp, sep='\t', skiprows=5, names=colNames, usecols=[0,1,2,10])
             p['e-value'] = pow(10, p['e-value'])
             if self.organism_filter is not None:
-                return p['Subject'].startswith(self.organism_filter) #TODO: fix this pseudo-code, i.e. how to filter a pandas data-frame
+                p[p.Subject.str.contains(self.organism_filter)]
             else:
                 return p
     
