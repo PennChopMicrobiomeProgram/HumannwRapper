@@ -21,7 +21,8 @@ def get_config(user_config_file):
         "search_method":"rapsearch", # rapsearch or blastx
         "mapping_method":"best_hit", # best_hit or humann
         "evalue_cutoff":0.001,
-        "num_threads":4
+        "num_threads":4,
+        "organism_filter":None
         }
 
     if user_config_file is None:
@@ -181,10 +182,11 @@ class Humann(_Assigner):
         return True
         
 class BestHit(_Assigner):
-    def __init__(self, mapping_method, search_method, evalue_cutoff, kegg_fp, kegg_to_ko_fp):
+    def __init__(self, mapping_method, search_method, evalue_cutoff, kegg_fp, kegg_to_ko_fp, organism_filter):
         super(BestHit, self).__init__(mapping_method, search_method, evalue_cutoff)
         self.kegg_fp = kegg_fp
         self.kegg_to_ko_fp = kegg_to_ko_fp
+        self.organism_filter = organism_filter
         
     def _getCount(self, df, group_key, count_key):
         "Counts how many times each value is repeated in a group_key column."
@@ -199,14 +201,20 @@ class BestHit(_Assigner):
         return kegg2ko.merge(self._getCount(kegg2ko, 'Subject', 'Count_ko'), on='Subject')
 
     def _parseResults(self, alignment_fp):
-        "Parses an alignment result file. Returns only the columns of interest"
+        """
+        Parses an alignment result file. Returns only the columns of interest.
+        Optionally, filter by 3 or 4 letter code for a Kegg organism.
+        """
         colNames = ['# Fields: Query', 'Subject', 'identity', 'e-value']
         if self.search_method.lower() == "blastx":
             return pandas.read_csv(alignment_fp, sep='\t', header=None, names=colNames, usecols=[0,1,2,10])
         else: # for rapsearch
             p = pandas.read_csv(alignment_fp, sep='\t', skiprows=5, names=colNames, usecols=[0,1,2,10])
             p['e-value'] = pow(10, p['e-value'])
-            return p
+            if self.organism_filter is not None:
+                return p[p.Subject.str.contains(self.organism_filter)]
+            else:
+                return p
     
     def _getBestHit(self, alignment):
         "Finds the best match that passes an e-value threshold."
@@ -263,7 +271,8 @@ class BestHit(_Assigner):
         ko_count = ko_count.sum(axis=1).to_frame(name='ko_abundance')
 
         # write to file
-        ko_out_fp = os.path.join(out_dir, os.path.basename(os.path.splitext(alignment_R1_fp)[0]+'.ko').replace('_R1', ''))
+        # TODO: more intelligently handle paired-end naming convention i.e. it could be _R1 or _1 or _fwd
+        ko_out_fp = os.path.join(out_dir, os.path.basename(os.path.splitext(alignment_R1_fp)[0]+'.ko').replace('_1', ''))
         ko_count.to_csv(ko_out_fp, sep='\t')
         
         return summary
@@ -301,6 +310,9 @@ def main(argv=None):
         "--config-file",
         type=argparse.FileType("r"),
         help="JSON configuration file")
+#    parser.add_argument(
+#        "--org-filter", required=False,
+#        help="3 or 4 letter KEGG code for organism that you want to focus on\n")
     args = parser.parse_args(argv)
 
     config = get_config(args.config_file)
