@@ -182,10 +182,11 @@ class Humann(_Assigner):
         return True
         
 class BestHit(_Assigner):
-    def __init__(self, mapping_method, search_method, evalue_cutoff, kegg_fp, kegg_to_ko_fp):
+    def __init__(self, mapping_method, search_method, evalue_cutoff, kegg_fp, kegg_to_ko_fp, organism_filter):
         super(BestHit, self).__init__(mapping_method, search_method, evalue_cutoff)
         self.kegg_fp = kegg_fp
         self.kegg_to_ko_fp = kegg_to_ko_fp
+        self.organism_filter = organism_filter
         
     def _getCount(self, df, group_key, count_key):
         "Counts how many times each value is repeated in a group_key column."
@@ -211,7 +212,7 @@ class BestHit(_Assigner):
             p = pandas.read_csv(alignment_fp, sep='\t', skiprows=5, names=colNames, usecols=[0,1,2,10])
             p['e-value'] = pow(10, p['e-value'])
             if self.organism_filter is not None:
-                p[p.Subject.str.contains(self.organism_filter)]
+                return p[p.Subject.str.contains(self.organism_filter)]
             else:
                 return p
     
